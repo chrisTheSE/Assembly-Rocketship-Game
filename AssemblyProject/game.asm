@@ -48,7 +48,7 @@
 .eqv SHIP_SIZE  8 		# Pixel size of the ship
 .eqv WIDTH 64 			# Bitmap width
 .eqv HEIGHT 32 			# Bitmap height
-.eqv REFRESH_RATE 0x28 		# 40ms
+.eqv REFRESH_RATE 40 		# 40ms
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
@@ -80,14 +80,19 @@ asteroid2:	.word	0, 256, 512, -252, 4, 260, 516, 772, 8, 264, 520, -1			   	   #
 asteroid2_clr:  .word	G1, G2, G1, G1, G2, G2, G2, G1, G1, G2, G1
 asteroid3:	.word	0, -252, 4, 260, 8, -1			   	   				   # Coords for asteroid relative to (0,0) top left pixel of asteroid	
 asteroid3_clr:  .word	G2, G2, G1, G2, G2
-asteroid4:	.word	0, 256, 512, -252, 4, 260, 516, 772, -248, 8, 264, 520, 776, -244, 12, 268, 524, 780, 16, 272, 528, -1			   	   				   # Coords for asteroid relative to (0,0) top left pixel of asteroid	
+asteroid4:	.word	0, 256, 512, -252, 4, 260, 516, 772, -248, 8, 264, 520, 776, -244, 12, 268, 524, 780, 16, 272, 528, -1	# Coords for asteroid relative to (0,0) top left pixel of asteroid	
 asteroid4_clr:  .word	G1, G2, G2, G1, G2, G1, G1, G2, G2, G1, G1, G1, G2, G2, G1, G1, G2, G1, G2, G2, G1
-
-
+erase_astro:	.word	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
+asteroids:	.word	0, 0, 0, 0, 0										   # Stores the (0,0) coordinates for all the asteroids
+astro_types:	.word	0, 0, 0, 0, 0										   # Store the asteroid types for above array of asteroids
+astro_speed:	.word	0, 0, 0, 0, 0	
+game_cycle:	.word	1										   # There are 59 game cycles before we reset back to 1
 giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3, 
 
 .text	
-	
+	  li $s3, 0 		# Game time
+	  li $s4, 0 		# Game Score
+	  jal spawn_astro	# Spawn asteroids for the first time
 ################ Main Game Loop ################
 GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  lw $s1, 0($s0)	# Get value stored at address KEY_PRESSED
@@ -96,21 +101,17 @@ GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  lw $a0, 4($s0)	# Load value of key pressed into $a0 
 	  
 	  jal update_ship	# Calls the update_ship function with the key pressed stored is $a0
-
-
-
 no_input:
-	
+	jal update_astro	# Update positions of asteroids
 	la $a0, ship_rgb 	# Draw ship using ship_rgb colors for the ships pixels
 	jal draw_ship 		# Draw the ship on the screen (position may have updated)
-	
-	jal spawn_astro
-	
+
 	# Wait at the end of the loop before next graphic refresh
 	li $v0, 32
 	li $a0, REFRESH_RATE # Wait REFRESH_RATE ms
 	syscall
-
+	
+	addi $s3, $s3, 1	# Gametime++
 	j GAMELOOP
 	
 	li $v0, 10 # terminate the program gracefully
@@ -118,24 +119,83 @@ no_input:
 	
 ############################# Game Functions #############################################
 
+##### Paint Space #####
+draw_space: 
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, 13 			# Loop row exit point
+	li $t0, 32 			# Loop col exit point
+	li $t3, 0 			# Loop row increment
+	li $t4, 0 			# Loop col increment
+
+row:    beq $t3, $t1, END9		# Exit when $t3 = 13
+	li $t4, 0			# Reset inner loop counter to 0
+col:    beq $t4, $t0, ENDCOL		# Exit when $t4 = 32
+	add $a0, $zero, $t3 		# $a0 = row
+	add $a1, $zero, $t4 		# $a1 = col
+	
+	# Call get_addr to get BASE_ADDRESS offset from x,y cords
+	addi $sp, $sp, -24
+	sw $t0, 0($sp)
+	sw $t1, 4($sp)
+	sw $t2, 8($sp)
+	sw $t4, 12($sp)
+	sw $t3, 16($sp)
+	sw $ra, 20($sp)
+	
+	jal get_addr
+	
+	lw $t0, 0($sp)
+	lw $t1, 4($sp)
+	lw $t2, 8($sp)
+	lw $t4, 12($sp)
+	lw $t3, 16($sp)
+	lw $ra, 20($sp)
+	addi $sp, $sp, 24
+	
+	add $t5, $zero, $v0 	# $t5 = get_addr(x,y) = OFFSET		
+	add $t5, $t2, $t5 	# $t5 = BASE_ADDRESS + OFFSET
+	li $t6, BLACK 	# $t6 = BLACK
+	sw $t6, 0($t5) 		# Set pixel at $t5 to color $t6
+
+	addi $t4, $t4, 1	# Loop col increment++
+	j col
+ENDCOL:	
+	addi $t3, $t3, 1	# Loop row increment++
+	j row
+END9: jr $ra
+
+#####################
 
 ##### Spawn Asteroids #####
 spawn_astro: 
-	# Choose a random location to spawn an asteroid
-	li $v0, 42
-	li $a0, 0
-	li $a1, 27		# Generates a random number between (0, 27)
-	syscall
-	addi $t2, $a0, 1	# Get random number between (1, 28)
-	
 	# Store the $ra register for this function
 	addi $sp, $sp, -4
 	sw $ra, 0($sp)
 	
-	li $a0, 59		# $a0 = xCoord to spawn asteroid
-	add $a1, $zero, $t2	# $a1 = yCoord to spawn asteroid
+	la $t5, asteroids	# Load base address of asteroid coords array
+	la $t6, astro_types	# Load base address of asteroid types array
+	li $t7, 0		# Loop increment
+loop5:	beq $t7, 5, end5	# Has already spawned all 5 asteroids
+	# Choose a random y location to spawn an asteroid
+	li $v0, 42
+	li $a0, 0
+	li $a1, 27		# Generates a random number between (0, 27)
+	syscall
+	addi $t3, $a0, 1	# Get random number between (1, 28)
+	
+	# Choose a random x location to spawn an asteroid
+	li $v0, 42
+	li $a0, 0
+	li $a1, 4		# Generates a random number between (0, 27)
+	syscall
+	addi $t2, $a0, 55	# Get random number between (55, 59)
+	add $a1, $zero, $t3	# $a1 = yCoord to spawn asteroid
+	add $a0, $zero, $t2	# $a0 = xCoord to spawn asteroid
+	
 	jal get_addr		# Call get_addr(x,y)
 	add $t2, $zero, $v0	# $t2 = OFFSET
+	
+	sw $t2, 0($t5)		# asteroids[i] = $t2 = random spawn location
 	
 	# Choose a random asteroid type to spawn 0-3
 	li $v0, 42
@@ -144,12 +204,84 @@ spawn_astro:
 	syscall
 	add $t3, $a0, $zero	
 	
-	# Based of random number 0-3, a random asteroid type will be spawned
+	sw $t3, 0($t6)		# astro_types[i] = $t3 = random asteroid type
+	
+	addi $t5, $t5, 4	# asteroids[i + 1]
+	addi $t6, $t6, 4	# astro_types[i + 1]
+	addi $t7, $t7, 1	# Loop increment++
+	j loop5
+end5:   # Load the $ra register for this function
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+
+#####################
+
+##### Update Asteroids #####
+# $a0 holds the colour mapping for the asteroid
+# $a1 holds the coordinates for the asteroid
+# $a2 holds a random base pixel to draw the asteroid from
+update_astro: 
+	# Store the $ra register for this function
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	la $t5, asteroids	# Load base address of asteroid coords array
+	la $t6, astro_types	# Load base address of asteroid types array
+	li $t7, 0		# Loop increment
+	
+	la $t8, game_cycle	# Load address for game_cycle
+	lw $t9, 0($t8)		# Load $t9 = game_cycle
+	addi $t9, $t9, 1	# Game_cycle++
+	sw $t9, 0($t8)		# Load $t9 = game_cycle
+	bne $t9, 62, no_spawn 	# Only respawn asteroids every 62 game cycles
+	li $t9, 1		# Game_cycle = 1
+	sw $t9, 0($t8)		# Load $t9 = game_cycle
+	jal draw_space		# Delete old asteroids that have left the screen
+	jal spawn_astro
+	j end4	
+no_spawn:
+	
+loop4:	beq $t7, 5, end4	# Has already spawned all 5 asteroids
+	
+	
+	lw $t2, 0($t5)		# $t2 = asteroids[i]
+	lw $t3, 0($t6)		# $t3 = astro_types[i]
+	li $a0, 4
+	sub $a0, $a0, $t3	# $a0 = 4 - asteroid_type[i]
+	li $a1, -4
+	mult $a0, $a1
+	mflo $a0
+	add $t2, $t2, $a0	# asteroids[i]--
+	sw $t2, 0($t5)		# asteroids[i] = asteroids[i] - 1 (So asteroids move leftwards)
+	li $a1, -1
+	mult $a0, $a1
+	mflo $a0
+	add $t2, $t2, $a0	 # asteroids[i]++
+	
+	# Store values of used registers in stack before function calls to draw_astro
+	addi $sp, $sp, -12
+	sw $t5, 0($sp)
+	sw $t6, 4($sp)
+	sw $t7, 8($sp)
+	
+	# Based on random number 0-3, a random asteroid type will be spawned
 	beq $t3, 0, spawn_a1
 	beq $t3, 1, spawn_a2
 	beq $t3, 2, spawn_a3
 	beq $t3, 3, spawn_a4
 spawn_a1:
+	# Erase old asteroid position
+	la $a0, erase_astro
+	la $a1, asteroid1
+	addi $a2, $t2, 16
+	# Call draw_astro to delete old asteroid position
+	addi $sp, $sp, -4
+	sw $t2, 0($sp)
+	jal draw_astro
+	lw $t2, 0($sp)
+	addi $sp, $sp, 4
+
 	# Draw asteroids
 	la $a0, asteroid1_clr
 	la $a1, asteroid1
@@ -157,6 +289,17 @@ spawn_a1:
 	jal draw_astro
 	j skip5
 spawn_a2:
+	# Erase old asteroid position
+	la $a0, erase_astro
+	la $a1, asteroid2
+	addi $a2, $t2, 12
+	# Call draw_astro to delete old asteroid position
+	addi $sp, $sp, -4
+	sw $t2, 0($sp)
+	jal draw_astro
+	lw $t2, 0($sp)
+	addi $sp, $sp, 4
+
 	# Draw asteroids
 	la $a0, asteroid2_clr
 	la $a1, asteroid2
@@ -164,6 +307,17 @@ spawn_a2:
 	jal draw_astro
 	j skip5
 spawn_a3:
+	# Erase old asteroid position
+	la $a0, erase_astro
+	la $a1, asteroid3
+	addi $a2, $t2, 8
+	# Call draw_astro to delete old asteroid position
+	addi $sp, $sp, -4
+	sw $t2, 0($sp)
+	jal draw_astro
+	lw $t2, 0($sp)
+	addi $sp, $sp, 4
+	
 	# Draw asteroids
 	la $a0, asteroid3_clr
 	la $a1, asteroid3
@@ -171,17 +325,37 @@ spawn_a3:
 	jal draw_astro
 	j skip5
 spawn_a4:
+	# Erase old asteroid position
+	la $a0, erase_astro
+	la $a1, asteroid4
+	addi $a2, $t2, 4
+	# Call draw_astro to delete old asteroid position
+	addi $sp, $sp, -4
+	sw $t2, 0($sp)
+	jal draw_astro
+	lw $t2, 0($sp)
+	addi $sp, $sp, 4
+
 	# Draw asteroids
 	la $a0, asteroid4_clr
 	la $a1, asteroid4
 	add $a2, $zero, $t2
 	jal draw_astro
 spawn_alarge:
-skip5: # Load the $ra register for this function
+skip5:  # Load values of used registers from stack 
+	lw $t5, 0($sp)
+	lw $t6, 4($sp)
+	lw $t7, 8($sp)
+	addi $sp, $sp, 12
+
+	addi $t5, $t5, 4	# asteroids[i + 1]
+	addi $t6, $t6, 4	# astro_types[i + 1]
+	addi $t7, $t7, 1	# Loop increment++
+	j loop4
+end4:   # Load the $ra register for this function
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
 	jr $ra
-
 #####################
 
 ##### Draw Asteroids #####
