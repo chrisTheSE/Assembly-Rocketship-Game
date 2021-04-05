@@ -93,6 +93,8 @@ astro_types:	.word	0, 0, 0, 0, 0
 astro_speed:	.word	1, 1, 1, 1, 1										   # Store the asteroid types for above array of asteroids
 game_cycle:	.word	1										   # There are 59 game cycles before we reset back to 1
 giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3, 
+ship_health:	.word   5										   # Ship health
+num_collides:	.word   0										   # The total number of ship collisions
 
 .text	
 	  li $s3, 0 		# Game time
@@ -125,7 +127,7 @@ GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  beq $s1, 0, no_input 	# If $s1 = 0 then skip to no_input, else continue to handle user input
 	  sw $zero, 0($s0) 	# Reset value at address KEY_PRESSED to 0
 	  lw $a0, 4($s0)	# Load value of key pressed into $a0 
-	  
+	    
 	  jal update_ship	# Calls the update_ship function with the key pressed stored is $a0
 no_input:
 		
@@ -164,12 +166,24 @@ update_a4:
 	la $a2, asteroid4
 skipper:
 	jal update_astro	# Update positions of asteroids
+	
+	sll $a0, $s5, 2		# $a0 = astro index * 4
+	jal astro_collisions	# Call astro_collisions
+	beq $v0, 0, no_col		# Branch is no collision
+	li $s7, 1	# Set $s7 to ship_rgb
+no_col:	
 	addi $s5, $s5, 1	# Loop increment++
 	j updateloop
 endupdate:
 	
-	
-	la $a0, ship_rgb 	# Draw ship using ship_rgb colors for the ships pixels
+	beq $s7, 0, no_crash
+	la $a0, shipcol_rgb	# Set $s7 to ship_rgb
+	j end12
+no_crash: 
+	la $a0, ship_rgb	# Set $s7 to ship_rgb
+end12:  li $s7, 0		# Reset to 0
+	#la $a0, ship_rgb 	# Draw ship using ship_rgb colors for the ships pixels
+	#move $a0, $s7 		# Draw ship using ship_rgb (or shipcol_rgb) colors for the ships pixels
 	jal draw_ship 		# Draw the ship on the screen (position may have updated)
 
 	# Wait at the end of the loop before next graphic refresh
@@ -184,45 +198,107 @@ endupdate:
 	syscall
 	
 ############################# Game Functions #############################################
-#li $s5, 0 		# Loop increment
-#updateloop: beq $s5, 5, endupdate	
-#	move $a0, $s5		# $a0 = index of asteroid
-#	la $s2, astro_types
-#	add $s2, $s2, $s5		# astro_types[0]
-#	lw $s4, 0($s2)		# $s4 = astro_types[0]
-#	
-#	# Based on random number 0-3, a random asteroid type will be spawned
-#	beq $s4, 0, update_a1
-#	beq $s4, 1, update_a2
-#	beq $s4, 2, update_a3
-#	beq $s4, 3, update_a4
-#
-#update_a1:
-#	la $a1, asteroid1_clr
-#	la $a2, asteroid1
-#	j skipper
-#update_a2:
-#	la $a1, asteroid2_clr
-#	la $a2, asteroid2
-#	j skipper
-#update_a3:
-#	la $a1, asteroid3_clr
-#	la $a2, asteroid3
-#	j skipper
-#update_a4:
-#	la $a1, asteroid4_clr
-#	la $a2, asteroid4
-#skipper:
-#	jal update_astro	# Update positions of asteroids
-#	addi $s5, $s5, 1	# Loop increment++
-#	j updateloop
-#endupdate:
 
-
-
-
-
-
+#### Check for collisions ####
+# $a0 holds the astro index
+# $v0 holds return value. 1 is collision. 0 if no collision
+astro_collisions:
+	add $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	### Get ship boundaries ###
+	la $t0, ship_posx	# Load address for x_position array
+	move $t2, $t0
+	lw $t5, 0($t0)		# Load value for first x cord of the pixel of space ship into $t5
+	add $t0, $t5, $0 	# Leftmost pixel
+	lw $t5, 28($t2)		# Load value for first x cord of the pixel of space ship into $t5 issue may originate from here
+	add $t1, $t5, $0 	# Rightmost pixel
+	
+	la $t4, ship_posy	# Load address for y_position array
+	lw $t5, 8($t4)		# Load value for first y cord of the pixel of space ship into $t5
+	add $t2, $t5, $0	# Uppermost pixel
+	lw $t5, 20($t4)		# Load value for first y cord of the pixel of space ship into $t5
+	add $t3, $t5, $0	# Lowest pixel
+	# $t3 lowest pixel, $t2 uppermost pixel, $t1 rightmost pixel, $t0 leftmost pixel
+	
+	### Get astro boundaries ###
+	la $t6, astro_types
+	add $t6, $t6, $a0		# $t6 = astro_types[0 + i] address
+	lw $t6, 0($t6)			# $t6 = astro_types[0 + i]
+	la $t4, asteroids
+	add $t4, $t4, $a0		# $t4 = asteroids[0 + i]
+	lw $a0, 0($t4)			# $a0 = asteroids[i] = asteroid pixel address
+	
+	addi $sp, $sp, -20
+	sw $t0, 0($sp)
+	sw $t1, 4($sp)
+	sw $t2, 8($sp)
+	sw $t3, 12($sp)
+	sw $t6, 16($sp)
+	jal get_xy			# Convert astro pixel address into x,y coords
+	lw $t0, 0($sp)
+	lw $t1, 4($sp)
+	lw $t2, 8($sp)
+	lw $t3, 12($sp)
+	lw $t6, 16($sp)
+	addi $sp, $sp, 20
+	
+	move $t4, $v0			# $t4 = x
+	move $t5, $v1			# $t5 = y
+	# $t4 astro x_cord, $t5 astro y_cord
+	
+	# Based on random number 0-3, a random asteroid type will be spawned
+	beq $t6, 0, astrotype1
+	beq $t6, 1, astrotype2
+	beq $t6, 2, astrotype3
+	beq $t6, 3, astrotype4
+astrotype1:	
+	addi $t6, $t4, 0	# Leftmost pixel
+	addi $t7, $t4, 3	# Rightmost pixel
+	addi $t8, $t5, -1	# Uppermost pixel
+	addi $t4, $t5, 2	# Lowermost pixel
+	j skip10
+astrotype2:
+	addi $t6, $t4, 0	# Leftmost pixel
+	addi $t7, $t4, 2	# Rightmost pixel
+	addi $t8, $t5, -1	# Uppermost pixel
+	addi $t4, $t5, 3	# Lowermost pixel
+	j skip10
+astrotype3:
+	addi $t6, $t4, 0	# Leftmost pixel
+	addi $t7, $t4, 2	# Rightmost pixel
+	addi $t8, $t5, -1	# Uppermost pixel
+	addi $t4, $t5, 1	# Lowermost pixel
+	j skip10
+astrotype4:
+	addi $t6, $t4, 0	# Leftmost pixel
+	addi $t7, $t4, 4	# Rightmost pixel
+	addi $t8, $t5, -1	# Uppermost pixel
+	addi $t4, $t5, 3	# Lowermost pixel
+skip10: # $t6 leftmost pixel, $t7 rightmost pixel, $t8 uppermost pixel, $t4 lowermost pixel
+	
+	#AL <= SR AND SL <= AR then horizontal collision
+	bgt $t6, $t1, finish
+	bgt $t0, $t7, finish
+	#SLO >= AHI AND ALO >= SHI then vertical collision
+	blt $t3, $t8, finish
+	blt $t4, $t2, finish
+   	# Collision!!!
+	li $v0, 1			# $v0 = 1 ->> collision happened
+	# Update number of collisions
+	la $t0, num_collides
+	lw $t1, 0($t0)
+	addi $t1, $t1, 1		# num_collides++
+	sw $t1, 0($t0)
+	j end11
+	
+finish:					# No collision
+	li $v0, 0			# $v0 = 0 ->> no collision occured
+end11:			
+	lw $ra, 0($sp)
+        add $sp, $sp, 4
+        jr $ra	
+###########################
 
 ##### Spawn Asteroid #####
 # $a0 holds the asteroid coords index and holds the asteroid types index
