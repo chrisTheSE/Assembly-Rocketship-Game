@@ -85,7 +85,7 @@ asteroid4_clr:  .word	G1, G2, G2, G1, G2, G1, G1, G2, G2, G1, G1, G1, G2, G2, G1
 erase_astro:	.word	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
 asteroids:	.word	0, 0, 0, 0, 0										   # Stores the (0,0) coordinates for all the asteroids
 astro_types:	.word	0, 0, 0, 0, 0
-astro_speed:	.word	1, 2, 1, 2, 1										   # Store the asteroid types for above array of asteroids
+astro_speed:	.word	1, 1, 1, 1, 1										   # Store the asteroid types for above array of asteroids
 game_cycle:	.word	1										   # There are 59 game cycles before we reset back to 1
 giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3, 
 
@@ -125,15 +125,16 @@ GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 no_input:
 		
 	li $s5, 0 		# Loop increment
-	la $s2, astro_types
 	li $s6, 4
 updateloop: beq $s5, 5, endupdate
+	la $s2, astro_types
 	mult $s5, $s6
 	mflo $a0
+	add $s2, $s2, $a0		# astro_types[0]
 	#sll $a0, $s5, 2		# $a0 = i * 4
 	#move $a0, $s5		# $a0 = index of asteroid
 	lw $s4, 0($s2)		# $s4 = astro_types[0]
-	add $s2, $s2, 4		# astro_types[0]
+	
 	
 	# Based on random number 0-3, a random asteroid type will be spawned
 	beq $s4, 0, update_a1
@@ -225,6 +226,7 @@ spawn_astro:
 	addi $sp, $sp, -4
 	sw $ra, 0($sp)
 	
+	move $t1, $a0 #added recently
 	la $t5, asteroids	# Asteroid array
 	la $t6, astro_types	# Asteroid types
 	add $t5, $t5, $a0	# Load base address of asteroid coords array
@@ -233,16 +235,16 @@ spawn_astro:
 	# Choose a random y location to spawn an asteroid
 	li $v0, 42
 	li $a0, 0
-	li $a1, 27		# Generates a random number between (0, 27)
+	li $a1, 24		# Generates a random number between (0, 24)
 	syscall
-	addi $t3, $a0, 1	# Get random number between (1, 28)
-	
+	addi $t3, $a0, 4	# Get random number between (4, 28)
+
 	# Choose a random x location to spawn an asteroid
 	li $v0, 42
-	li $a0, 0
-	li $a1, 4		# Generates a random number between (0, 4)
+	li $a0, 1
+	li $a1, 9		# Generates a random number between (0, 9)
 	syscall
-	addi $t2, $a0, 55	# Get random number between (55, 59)
+	addi $t2, $a0, 50	# Get random number between (50, 59)
 	add $a1, $zero, $t3	# $a1 = yCoord to spawn asteroid
 	add $a0, $zero, $t2	# $a0 = xCoord to spawn asteroid
 	
@@ -253,11 +255,11 @@ spawn_astro:
 	
 	# Choose a random asteroid type to spawn 0-3
 	li $v0, 42
-	li $a0, 0
+	li $a0, 2
 	li $a1, 3		# Generates a random number between (0, 3)
 	syscall
 	add $t3, $a0, $zero	
-	
+	##li $t3, 0 ## adde this delete after
 	sw $t3, 0($t6)		# astro_types[i] = $t3 = random asteroid type
 	
 	# Load the $ra register for this function
@@ -345,9 +347,9 @@ update_astro:
 	addi $sp, $sp, 4
 	bnez $t2, no_respawn 
 	### Respawn asteroid ###
-	li $t1, 4
-	mult $a0, $t1
-	mflo $a0
+	#li $t1, 4
+	#mult $a0, $t1
+	#mflo $a0
 	jal spawn_astro	# Call spawn astro function
 	j  skip5 
 no_respawn:	
