@@ -52,6 +52,7 @@
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
+.eqv RED   0xf44236		# Red color
 .eqv BLACK 0x00000000		# Black color
 .eqv GREY 0x808080 		# Grey color
 .eqv ORANGE 0xffa500 		# Orange color
