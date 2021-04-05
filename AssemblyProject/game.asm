@@ -48,7 +48,7 @@
 .eqv SHIP_SIZE  8 		# Pixel size of the ship
 .eqv WIDTH 64 			# Bitmap width
 .eqv HEIGHT 32 			# Bitmap height
-.eqv REFRESH_RATE 40 		# 40ms
+.eqv REFRESH_RATE 80 		# 40ms
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
@@ -98,17 +98,17 @@ giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3,
 	  li $a0, 0
 	  jal spawn_astro	# Spawn asteroids for the first time
 	  
-	#  li $a0, 4
-	 # jal spawn_astro	# Spawn asteroids for the first time
+	  li $a0, 4
+	  jal spawn_astro	# Spawn asteroids for the first time
 	 
-	#  li $a0, 8
-	#  jal spawn_astro	# Spawn asteroids for the first time
+	  li $a0, 8
+	  jal spawn_astro	# Spawn asteroids for the first time
 	  
-	 # li $a0, 12
-	 # jal spawn_astro	# Spawn asteroids for the first time
+	  li $a0, 12
+	  jal spawn_astro	# Spawn asteroids for the first time
 	  
-	 # li $a0, 16
-	 # jal spawn_astro	# Spawn asteroids for the first time
+	  li $a0, 16
+	  jal spawn_astro	# Spawn asteroids for the first time
 	  
 # $a0 holds the index of the asteroid to be updated
 # $a1 holds the astro color array base address
@@ -124,15 +124,44 @@ GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  jal update_ship	# Calls the update_ship function with the key pressed stored is $a0
 no_input:
 		
-	li $a0, 0		# $a0 = index of asteroid
-	#la $s2, astro_types
-	#addi $s2, $s2, 0	# astro_types[0]
-	#lw $s4, 0($s2)		# $s4 = astro_types[0]
+	li $s5, 0 		# Loop increment
+	la $s2, astro_types
+	li $s6, 4
+updateloop: beq $s5, 5, endupdate
+	mult $s5, $s6
+	mflo $a0
+	#sll $a0, $s5, 2		# $a0 = i * 4
+	#move $a0, $s5		# $a0 = index of asteroid
+	lw $s4, 0($s2)		# $s4 = astro_types[0]
+	add $s2, $s2, 4		# astro_types[0]
 	
-	la $a1, asteroid1_clr	# $a1 = astro colors
-	la $a2, asteroid1	# $a2 = astro offsets
+	# Based on random number 0-3, a random asteroid type will be spawned
+	beq $s4, 0, update_a1
+	beq $s4, 1, update_a2
+	beq $s4, 2, update_a3
+	beq $s4, 3, update_a4
 
+update_a1:
+	la $a1, asteroid1_clr
+	la $a2, asteroid1
+	j skipper
+update_a2:
+	la $a1, asteroid2_clr
+	la $a2, asteroid2
+	j skipper
+update_a3:
+	la $a1, asteroid3_clr
+	la $a2, asteroid3
+	j skipper
+update_a4:
+	la $a1, asteroid4_clr
+	la $a2, asteroid4
+skipper:
 	jal update_astro	# Update positions of asteroids
+	addi $s5, $s5, 1	# Loop increment++
+	j updateloop
+endupdate:
+	
 	
 	la $a0, ship_rgb 	# Draw ship using ship_rgb colors for the ships pixels
 	jal draw_ship 		# Draw the ship on the screen (position may have updated)
