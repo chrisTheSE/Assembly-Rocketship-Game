@@ -247,6 +247,9 @@ update_astro:
 	addi $sp, $sp, -4
 	sw $ra, 0($sp)
 	
+	addi $sp, $sp, -4
+	sw $a0, 0($sp)		# Store pixel index
+	
 	move $t0, $a2 		# Asteroid offsets from base coord
 	addi $sp, $sp, -4
 	sw $t0, 0($sp)
@@ -257,8 +260,6 @@ update_astro:
 	la $t7, astro_speed	# Asteroid speed
 	
 	
-	#addi $sp, $sp, -4
-	#sw $a0, 0($sp)		# Store pixel index
 	add $t5, $t5, $a0	# Load base pixel of the asteroid
 	add $t6, $t6, $a0	# Load astro type
 	add $t7, $t7, $a0	# Load astro speed
@@ -311,23 +312,14 @@ update_astro:
 	addi $sp, $sp, 12
 	
 	move $t2, $v1
-	#lw $a0, 0($sp)		# Load pixel index
-	#addi $sp, $sp, 4
+	lw $a0, 0($sp)		# Load pixel index
+	addi $sp, $sp, 4
 	bnez $t2, no_respawn 
 	### Respawn asteroid ###
-	li $a0, 0
-	#li $t1, 4
-	#mult $a0, $t1
-	#mflo $a0
-	#addi $sp, $sp, -12
-	#sw $t4, 0($sp)
-	#sw $t0, 4($sp)
-	#sw $t8, 8($sp)
+	li $t1, 4
+	mult $a0, $t1
+	mflo $a0
 	jal spawn_astro	# Call spawn astro function
-	#lw $t4, 0($sp)
-	#lw $t0, 4($sp)
-	#lw $t8, 8($sp)
-	#addi $sp, $sp, 12
 	j  skip5 
 no_respawn:	
 												
