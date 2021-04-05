@@ -78,7 +78,7 @@ ship_posx:	.word	10, 10, 11, 11, 11, 11, 12, 12, 10, 10, 12, 12 # X cords of the
 ship_posy:	.word	15, 16, 14, 15, 16, 17, 15, 16, 14, 17, 14, 17 # Y cords of the ship
 ship_rgb:	.word	ORANGE, ORANGE, DARK_BLUE, DARK_BLUE, DARK_BLUE, DARK_BLUE, LIGHT_BLUE, LIGHT_BLUE, BLACK, BLACK, BLACK, BLACK # Pixel colors corresponding to x/y arrays above
 shipcol_rgb:	.word	ORANGE, ORANGE, DARK_BLUE, RED, RED, DARK_BLUE, LIGHT_BLUE, LIGHT_BLUE, RED, RED, RED, RED # Pixel colors corresponding to x/y arrays above
-erase_ship:	.word	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK 				   # Pixel colors used to erase the ship
+erase_ship:	.word	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK 				   # Pixel colors used to erase the ship
 asteroid1:	.word	0, 256, -252, 4, 260, 516, -248, 8, 264, 520, 12, 268, -1			   # Coords for asteroid relative to (0,0) top left pixel of asteroid	
 asteroid1_clr:  .word	G2, G2, G2, G1, G1, G2, G2, G1, G1, G2, G2, G2
 asteroid2:	.word	0, 256, 512, -252, 4, 260, 516, 772, 8, 264, 520, -1			   	   # Coords for asteroid relative to (0,0) top left pixel of asteroid	
