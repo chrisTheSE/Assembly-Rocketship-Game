@@ -52,6 +52,7 @@
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
+.eqv WHITE 0xFFFFFF		# White color
 .eqv RED   0xf44236		# Red color
 .eqv BLACK 0x00000000		# Black color
 .eqv GREY 0x808080 		# Grey color
@@ -71,9 +72,22 @@
 
 .data
 str1:	.asciiz 	"sss\n"
-#ship_posx:	.word	10, 10, 11, 11, 11, 11, 12, 12 # X cords of the ship
-#ship_posy:	.word	15, 16, 14, 15, 16, 17, 15, 16 # Y cords of the ship
-#ship_rgb:	.word	ORANGE, ORANGE, DARK_BLUE, DARK_BLUE, DARK_BLUE, DARK_BLUE, LIGHT_BLUE, LIGHT_BLUE # Pixel colors corresponding to x/y arrays above
+gameover_text:  .word   0, 256, 512, 768, 1024, 1280, 4, 8, 12, 772, 776, 780, 24, 28, 32, 36, 40, 1304,	# Store the pixel values for gameover text
+ 1308, 1312, 1316, 1320, 32, 288, 544, 800, 1056, 1312, 52, 308, 564, 820, 1076, 1332, 64, 320, 576, 832,
+ 1088, 1344, 2048, 2052, 2056, 2304, 2560, 2564, 2568, 2824, 3080, 3076, 3072, 2064, 2068, 3088, 3092,
+ 2320, 2576, 2832, 2076, 2332, 2588, 2844, 3100, 2084, 2340, 2596, 2852, 3108, 2080, 3104, 2092, 2348,
+ 2604, 2860, 3116, 2096, 2100, 2608, 2612, 2360, 2616, 2868, 3128, 2112, 2368, 2624, 2880, 3136, 2116,
+ 2628, 3140, 568, 828, -1
+zero:		.word   0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, -1
+one:		.word   0, 4, 260, 516, 772, 1028, 1024, 1032, -1
+two:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 1032, 516, 512, 768, -1
+three:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 776, 1032, 516, -1
+four:		.word	0, 256, 512, 8, 264, 520, 776, 1032, 516, -1
+five:		.word	0, 256, 512, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
+six:		.word	0, 256, 512, 768, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
+seven:		.word	0, 4, 8, 264, 520, 776, 1032, -1
+eight:		.word	0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
+nine:		.word	0, 4, 8, 264, 520, 776, 1032, 256, 512, 516, -1
 ship_posx:	.word	10, 10, 11, 11, 11, 11, 12, 12, 10, 10, 12, 12 # X cords of the ship
 ship_posy:	.word	15, 16, 14, 15, 16, 17, 15, 16, 14, 17, 14, 17 # Y cords of the ship
 ship_rgb:	.word	ORANGE, ORANGE, DARK_BLUE, DARK_BLUE, DARK_BLUE, DARK_BLUE, LIGHT_BLUE, LIGHT_BLUE, BLACK, BLACK, BLACK, BLACK # Pixel colors corresponding to x/y arrays above
@@ -93,12 +107,15 @@ astro_types:	.word	0, 0, 0, 0, 0
 astro_speed:	.word	1, 1, 1, 1, 1										   # Store the asteroid types for above array of asteroids
 game_cycle:	.word	1										   # There are 59 game cycles before we reset back to 1
 giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3, 
-ship_health:	.word   5										   # Ship health
-num_collides:	.word   0										   # The total number of ship collisions
+ship_health:	.word   10										   # Ship health
+num_collides:	.word   0										 # The total number of ship collisions
+score:		.word   0									   # The total score
+time:		.word   0										# game time
 
 .text	
-	  li $s3, 0 		# Game time
-	  li $s4, 0 		# Game Score
+RESTART:  jal draw_space	# Clear the screen before restarting
+	 # li $s3, 0 		# Game time
+	 # li $s4, 0 		# Game Score
 	  la $s5, asteroids	# Asteroid array
 	  la $s6, astro_types	# Asteroid types
 	  
@@ -134,6 +151,10 @@ no_input:
 	li $s5, 0 		# Loop increment
 	li $s6, 4
 updateloop: beq $s5, 5, endupdate
+	la $a1, ship_health			
+	lw $a2, 0($a1)			# $a1 = health
+	blez $a2, gameover		# If health goes to 0 or less, than game over
+	
 	la $s2, astro_types
 	mult $s5, $s6
 	mflo $a0
@@ -178,6 +199,11 @@ endupdate:
 	
 	beq $s7, 0, no_crash
 	la $a0, shipcol_rgb	# Set $s7 to ship_rgb
+	# Reduce the ships health by 1
+	la $a2, ship_health
+	lw $a1, 0($a2)
+	add $a1, $a1, -1
+	sw $a1, 0($a2)
 	j end12
 no_crash: 
 	la $a0, ship_rgb	# Set $s7 to ship_rgb
@@ -191,13 +217,194 @@ end12:  li $s7, 0		# Reset to 0
 	li $a0, REFRESH_RATE # Wait REFRESH_RATE ms
 	syscall
 	
-	addi $s3, $s3, 1	# Gametime++
+	la $s3, time
+	lw $s4, 0($s3)
+	addi $s4, $s4, 1	# Gametime++
+	sw $s4, 0($s3)
+	
+	li $a2, 100
+	div $s4, $a2
+	mfhi $a2
+	beq $a2, 0, add_score
+	j no_change
+add_score:
+	la $s3, score
+	lw $s4, 0($s3)
+	addi $s4, $s4, 1	# score++
+	sw $s4, 0($s3)	
+no_change:	
+	
 	j GAMELOOP
+gameover:
+	jal draw_space		# Clear the screen
+	
+	add $t4, $0, WHITE		# $t4 = white color
+	la $t0, gameover_text 		# Load address for gameover text coords
+	#add $t4, $zero, $a0 		# Load address for asteroid pixel colors
+	li $t3, 788			# $t3 = pixel to start drawing gameover from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, -1 			# Loop exit point
+
+loop9:  lw $t6, 0($t0) 			# $t6 = asteroidCord[i]
+	beq $t6, $t1, END14
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	add $t5, $t5, $t6 	# $t5 = BASE_ADDRESS + base pixel value	+ gotextCord[i]
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t0, $t0, 4 	# gotextCord++
+	j loop9
+END14:
+	
+	
+	
+	
+	la $s0, score
+	lw $s1, 0($s0)		# $t0 = score
+	
+	li $s2, 10
+	div $s1, $s2
+	mfhi $s3		# score % 10 ( the first digit of the score)
+	sub $s1, $s1, $s3	# score - score % 10 = newscore
+	div $s1, $s2		# Shift right newscore by 1 decimal place
+	mflo $s1
+	div $s1, $s2
+	mfhi $s4		# newscore %10 ( the second digit of the score)
+	sub $s1, $s1, $s4	# score - score % 10 = newscore
+	div $s1, $s2	# Shift right newscore by 1 decimal place
+	mflo $s1
+	# $s3 first digit, $s4 second digit, $s1 third digit
+	
+	# Print First digit
+	move $a0, $s1
+	li $a1, 2924
+	jal draw_text
+	# Print second digit
+	move $a0, $s4
+	li $a1, 2940
+	jal draw_text
+	# Print third digit
+	move $a0, $s3
+	li $a1, 2956
+	jal draw_text
 	
 	li $v0, 10 # terminate the program gracefully
 	syscall
 	
 ############################# Game Functions #############################################
+
+# $a0 holds the digit
+# $a1 holds starting pixel
+##### Draw text #####
+draw_text:
+	beq $a0, 0, zero1	# Branch if digit is 0
+	beq $a0, 1, one1	# Branch if digit is 1
+	beq $a0, 2, two1	# Branch if digit is 2
+	beq $a0, 3, three1	# Branch if digit is 3
+	beq $a0, 4, four1	# Branch if digit is 4
+	beq $a0, 5, five1	# Branch if digit is 5
+	beq $a0, 6, six1	# Branch if digit is 6
+	beq $a0, 7, seven1	# Branch if digit is 7
+	beq $a0, 8, eight1	# Branch if digit is 8
+	beq $a0, 9, nine1	# Branch if digit is 9
+
+zero1:
+	la $t0, zero 		# Load address for digit text coords
+	j finished8
+one1:
+	la $t0, one 		# Load address for digit text coords
+	j finished8
+two1:
+	la $t0, two 		# Load address for digit text coords
+	j finished8
+three1:
+	la $t0, three 		# Load address for digit text coords
+	j finished8
+four1:
+	la $t0, four 		# Load address for digit text coords
+	j finished8
+five1:
+	la $t0, five 		# Load address for digit text coords
+	j finished8
+six1:
+	la $t0, six 		# Load address for digit text coords
+	j finished8
+seven1:
+	la $t0, seven 		# Load address for digit text coords
+	j finished8
+eight1:
+	la $t0, eight 		# Load address for digit text coords
+	j finished8
+nine1:
+	la $t0, nine 		# Load address for digit text coords
+finished8:
+	add $t4, $0, WHITE		# $t4 = white color
+	#add $t0, $0,$a0 		# Load address for gameover text coords
+	#add $t4, $zero, $a0 		# Load address for asteroid pixel colors
+	add $t3,$0, $a1			# $t3 = pixel to start drawing gameover from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, -1 			# Loop exit point
+
+loop7:  lw $t6, 0($t0) 			# $t6 = asteroidCord[i]
+	beq $t6, $t1, END15
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	add $t5, $t5, $t6 	# $t5 = BASE_ADDRESS + base pixel value	+ gotextCord[i]
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t0, $t0, 4 	# gotextCord++
+	j loop7
+END15: jr $ra
+
+##############################
+
+##### Paint Space #####
+draw_space: 
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, 64 			# Loop row exit point
+	li $t0, 32 			# Loop col exit point
+	li $t3, 0 			# Loop row increment
+	li $t4, 0 			# Loop col increment
+
+row:    beq $t3, $t1, END9		# Exit when $t3 = 13
+	li $t4, 0			# Reset inner loop counter to 0
+col:    beq $t4, $t0, ENDCOL		# Exit when $t4 = 32
+	add $a0, $zero, $t3 		# $a0 = row
+	add $a1, $zero, $t4 		# $a1 = col
+	
+	# Call get_addr to get BASE_ADDRESS offset from x,y cords
+	addi $sp, $sp, -24
+	sw $t0, 0($sp)
+	sw $t1, 4($sp)
+	sw $t2, 8($sp)
+	sw $t4, 12($sp)
+	sw $t3, 16($sp)
+	sw $ra, 20($sp)
+	
+	jal get_addr
+	
+	lw $t0, 0($sp)
+	lw $t1, 4($sp)
+	lw $t2, 8($sp)
+	lw $t4, 12($sp)
+	lw $t3, 16($sp)
+	lw $ra, 20($sp)
+	addi $sp, $sp, 24
+	
+	add $t5, $zero, $v0 	# $t5 = get_addr(x,y) = OFFSET		
+	add $t5, $t2, $t5 	# $t5 = BASE_ADDRESS + OFFSET
+	li $t6, BLACK 	# $t6 = BLACK
+	sw $t6, 0($t5) 		# Set pixel at $t5 to color $t6
+
+	addi $t4, $t4, 1	# Loop col increment++
+	j col
+ENDCOL:	
+	addi $t3, $t3, 1	# Loop row increment++
+	j row
+END9: jr $ra
+
+#####################
+
 
 #### Check for collisions ####
 # $a0 holds the astro index
