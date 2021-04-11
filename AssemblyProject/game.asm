@@ -15,12 +15,13 @@
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
 # - Milestone 1/2/3/4 (choose the one the applies)
+# -I have reach Milestone 2 and almost done 3
 #
 # Which approved features have been implemented for milestone 4?
 # (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
+# 1. (scoring system)
+# 2. (Increase difficulty as game progresses)
+# 3. (Smooth graphics)
 # ... (add more if necessary)
 #
 # Link to video demonstration for final submission:
@@ -761,7 +762,7 @@ get_addr:
 ###########################
 
 ##### Update Ship #####
-# $a0 holds address to array of addresses of where ship currently is currently located
+# $a0 holds ascii key value of key press
 # $a1 holds the colour mapping for the ship (same length as array above holding the color value for pixel at the same index)
 update_ship: 
 	la $t0, ship_posx 	# Load address for ship positions x cords. offset = 0
