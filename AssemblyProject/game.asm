@@ -145,7 +145,9 @@ GAMELOOP: la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  beq $s1, 0, no_input 	# If $s1 = 0 then skip to no_input, else continue to handle user input
 	  sw $zero, 0($s0) 	# Reset value at address KEY_PRESSED to 0
 	  lw $a0, 4($s0)	# Load value of key pressed into $a0 
-	    
+	  
+	  beq $a0, 0x70, gameover  # If the p key is pressed the game is ended
+	  
 	  jal update_ship	# Calls the update_ship function with the key pressed stored is $a0
 no_input:
 		
@@ -288,6 +290,38 @@ END14:
 	move $a0, $s3
 	li $a1, 2956
 	jal draw_text
+	
+	## Reset game state for the next game cycle ##
+	# Reset ship health
+	la $s0, ship_health	# Get address for ship health
+	li $s1, 10		# Set $s1 = fresh ship health 
+	sw $s1, 0($s0)		# Reset ship health to starting health
+	# Reset game score
+	la $s0, score		# Get address for game score
+	li $s1, 0		# Set $s1 = 0
+	sw $s1, 0($s0)		# Reset score to zero
+	# Reset game time
+	la $s0, time		# Get address for game time
+	li $s1, 0		# Set $s1 = 0
+	sw $s1, 0($s0)		# Reset time to zero
+	# Reset number_collisions
+	la $s0, num_collides	# Get address for num_collides
+	li $s1, 0		# Set $s1 = 0
+	sw $s1, 0($s0)		# Reset num_collides to zero
+	# Reset game_cycle to 0
+	la $s0, game_cycle	# Get address for game_cycle
+	li $s1, 0		# Set $s1 = 0
+	sw $s1, 0($s0)		# Reset game_cycle to zero
+LOOP18: 
+	  la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
+	  lw $s1, 0($s0)	# Get value stored at address KEY_PRESSED
+	  beq $s1, 0, no_input2 	# If $s1 = 0 then skip to no_input, else continue to handle user input
+	  sw $zero, 0($s0) 	# Reset value at address KEY_PRESSED to 0
+	  lw $a0, 4($s0)	# Load value of key pressed into $a0 
+	  
+	  beq $a0, 0x70, RESTART  # If the p key is pressed the game is ended
+no_input2:	
+	  j LOOP18
 	
 	li $v0, 10 # terminate the program gracefully
 	syscall
