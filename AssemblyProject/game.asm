@@ -49,7 +49,6 @@
 .eqv SHIP_SIZE  12 		# Pixel size of the ship
 .eqv WIDTH 64 			# Bitmap width
 .eqv HEIGHT 32 			# Bitmap height
-.eqv REFRESH_RATE 80 		# 40ms
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
@@ -80,6 +79,7 @@ gameover_text:  .word   0, 256, 512, 768, 1024, 1280, 4, 8, 12, 772, 776, 780, 2
  2320, 2576, 2832, 2076, 2332, 2588, 2844, 3100, 2084, 2340, 2596, 2852, 3108, 2080, 3104, 2092, 2348,
  2604, 2860, 3116, 2096, 2100, 2608, 2612, 2360, 2616, 2868, 3128, 2112, 2368, 2624, 2880, 3136, 2116,
  2628, 3140, 568, 828, -1
+REFRESH_RATE:	.word   40				# Game refresh rate
 health_bar:	.word   0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 512, 516, 520, 524, 528, 532, 536, 540, 544, 548, 552, 556, 256, 300, -1	# Stores coords for health bar
 zero:		.word   0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, -1
 one:		.word   0, 4, 260, 516, 772, 1028, 1024, 1032, -1
@@ -222,14 +222,33 @@ end12:  li $s7, 0		# Reset to 0
 	
 	# Wait at the end of the loop before next graphic refresh
 	li $v0, 32
-	li $a0, REFRESH_RATE # Wait REFRESH_RATE ms
+	la $a0, REFRESH_RATE 		# Wait REFRESH_RATE ms
+	lw $a0, 0($a0)	     		# $a0 = REFRESH_RATE
 	syscall
 	
 	la $s3, time
 	lw $s4, 0($s3)
-	addi $s4, $s4, 1	# Gametime++
+	addi $s4, $s4, 1		# Gametime++
 	sw $s4, 0($s3)
 	
+	 
+	# Increase game difficulty when time % 100 = 0
+	li $a2, 100			# $a0 = 100
+	div $s4, $a2			
+	mfhi $a2			# $a2 = time % 100
+	beq $a2, 0, update_diff		# Update difficulty
+	j no_diff_change		# No difficulty change
+update_diff:
+	la $a0, REFRESH_RATE 		# Wait REFRESH_RATE ms
+	lw $a1, 0($a0)	     		# $a0 = REFRESH_RATE
+	bgt $a1, 10, Increase_diff
+	j no_diff_change
+Increase_diff:				# Increase difficulty
+	addi $a1, $a1, -1		# Make game speed faster by 1
+	sw $a1, 0($a0)			# Store new REFRESH_RATE
+no_diff_change:				# No change in difficulty
+	
+	# Increase score when time % 100 = 0
 	li $a2, 100
 	div $s4, $a2
 	mfhi $a2
@@ -263,10 +282,6 @@ loop9:  lw $t6, 0($t0) 			# $t6 = asteroidCord[i]
 	addi $t0, $t0, 4 	# gotextCord++
 	j loop9
 END14:
-	
-	
-	
-	
 	la $s0, score
 	lw $s1, 0($s0)		# $t0 = score
 	
@@ -279,7 +294,7 @@ END14:
 	div $s1, $s2
 	mfhi $s4		# newscore %10 ( the second digit of the score)
 	sub $s1, $s1, $s4	# score - score % 10 = newscore
-	div $s1, $s2	# Shift right newscore by 1 decimal place
+	div $s1, $s2		# Shift right newscore by 1 decimal place
 	mflo $s1
 	# $s3 first digit, $s4 second digit, $s1 third digit
 	
@@ -317,6 +332,11 @@ END14:
 	la $s0, game_cycle	# Get address for game_cycle
 	li $s1, 0		# Set $s1 = 0
 	sw $s1, 0($s0)		# Reset game_cycle to zero
+	# Reset REFRESH_RATE to 0
+	la $s0, REFRESH_RATE	# Get address for REFRESH_RATE
+	li $s1, 40		# Set $s1 = 40
+	sw $s1, 0($s0)		# Reset REFRESH_RATE to 40
+	
 LOOP18: 
 	  la $s0, KEY_PRESSED 	# Load address of KEY_PRESSED
 	  lw $s1, 0($s0)	# Get value stored at address KEY_PRESSED
