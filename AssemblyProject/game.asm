@@ -14,8 +14,8 @@
 #
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
-# - Milestone 1/2/3/4 (choose the one the applies)
-# -I have reach Milestone 2 and almost done 3
+# - Milestone 4 (choose the one the applies)
+# -I have reached Milestone 4 
 #
 # Which approved features have been implemented for milestone 4?
 # (See the assignment handout for the list of additional features)
@@ -28,10 +28,13 @@
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
 #
 # Are you OK with us sharing the video with people outside course staff?
-# - yes / no / yes, and please share this project github link as well!
+# - no
 #
 # Any additional information that the TA needs to know:
-# - (write here, if any)
+# - For smooth graphics instead of redrawing the whole screen black to erase old object positions, I only redraw in black the specific pixel 
+#   locations of objects that have changed. This removes almost all flickering and the game runs much more smooth.
+#   For the increase in diffuculty feature, every 200 game time ticks the speed of the asteroids are increased by 1 unit
+#   For the score feature, the score increases every so many game ticks, and as difficulty increases score also goes up faster
 #
 #####################################################################
 
@@ -81,16 +84,16 @@ gameover_text:  .word   0, 256, 512, 768, 1024, 1280, 4, 8, 12, 772, 776, 780, 2
  2628, 3140, 568, 828, -1
 REFRESH_RATE:	.word   40				# Game refresh rate
 health_bar:	.word   0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 512, 516, 520, 524, 528, 532, 536, 540, 544, 548, 552, 556, 256, 300, -1	# Stores coords for health bar
-zero:		.word   0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, -1
-one:		.word   0, 4, 260, 516, 772, 1028, 1024, 1032, -1
-two:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 1032, 516, 512, 768, -1
-three:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 776, 1032, 516, -1
-four:		.word	0, 256, 512, 8, 264, 520, 776, 1032, 516, -1
-five:		.word	0, 256, 512, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
-six:		.word	0, 256, 512, 768, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
-seven:		.word	0, 4, 8, 264, 520, 776, 1032, -1
-eight:		.word	0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1
-nine:		.word	0, 4, 8, 264, 520, 776, 1032, 256, 512, 516, -1
+zero:		.word   0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, -1	# Digit zero
+one:		.word   0, 4, 260, 516, 772, 1028, 1024, 1032, -1				# Digit one
+two:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 1032, 516, 512, 768, -1		# Digit two
+three:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 776, 1032, 516, -1		# Digit three
+four:		.word	0, 256, 512, 8, 264, 520, 776, 1032, 516, -1				# Digit four
+five:		.word	0, 256, 512, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1		# Digit five
+six:		.word	0, 256, 512, 768, 1024, 8, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1	# Digit six
+seven:		.word	0, 4, 8, 264, 520, 776, 1032, -1					# Digit seven
+eight:		.word	0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, 516, -1 # Digit eight
+nine:		.word	0, 4, 8, 264, 520, 776, 1032, 256, 512, 516, -1				# Digit nine
 ship_posx:	.word	10, 10, 11, 11, 11, 11, 12, 12, 10, 10, 12, 12 # X cords of the ship
 ship_posy:	.word	15, 16, 14, 15, 16, 17, 15, 16, 14, 17, 14, 17 # Y cords of the ship
 ship_rgb:	.word	ORANGE, ORANGE, DARK_BLUE, DARK_BLUE, DARK_BLUE, DARK_BLUE, LIGHT_BLUE, LIGHT_BLUE, BLACK, BLACK, BLACK, BLACK # Pixel colors corresponding to x/y arrays above
@@ -105,15 +108,15 @@ asteroid3_clr:  .word	G2, G2, G1, G2, G2
 asteroid4:	.word	0, 256, 512, -252, 4, 260, 516, 772, -248, 8, 264, 520, 776, -244, 12, 268, 524, 780, 16, 272, 528, -1	# Coords for asteroid relative to (0,0) top left pixel of asteroid	
 asteroid4_clr:  .word	G1, G2, G2, G1, G2, G1, G1, G2, G2, G1, G1, G1, G2, G2, G1, G1, G2, G1, G2, G2, G1
 erase_astro:	.word	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
-asteroids:	.word	0, 0, 0, 0, 0										   # Stores the (0,0) coordinates for all the asteroids
+asteroids:	.word	0, 0, 0, 0, 0										   	# Stores the (0,0) coordinates for all the asteroids
 astro_types:	.word	0, 0, 0, 0, 0
-astro_speed:	.word	1, 1, 1, 1, 1										   # Store the asteroid types for above array of asteroids
-game_cycle:	.word	1										   # There are 59 game cycles before we reset back to 1
+astro_speed:	.word	1, 1, 1, 1, 1										   	# Store the asteroid types for above array of asteroids
+game_cycle:	.word	1										   		# There are 59 game cycles before we reset back to 1
 giant_asteroid: .word	R1, R1, R2, R3, R1, R1, R1, R2, R3, R2, R2, R3, 
-ship_health:	.word   10										   # Ship health
-num_collides:	.word   0										 # The total number of ship collisions
-score:		.word   0									   # The total score
-time:		.word   0										# game time
+ship_health:	.word   10										   		# Ship health
+num_collides:	.word   0										 		# The total number of ship collisions
+score:		.word   0									   			# The total score
+time:		.word   0												# game time
 
 .text	
 RESTART:  jal draw_space	# Clear the screen before restarting
@@ -175,19 +178,19 @@ updateloop: beq $s5, 5, endupdate
 	beq $s4, 2, update_a3
 	beq $s4, 3, update_a4
 
-update_a1:
+update_a1:			# Update type1 asteroids
 	la $a1, asteroid1_clr
 	la $a2, asteroid1
 	j skipper
-update_a2:
+update_a2:			# Update type2 asteroids
 	la $a1, asteroid2_clr
 	la $a2, asteroid2
 	j skipper
-update_a3:
+update_a3:			# Update type3 asteroids
 	la $a1, asteroid3_clr
 	la $a2, asteroid3
 	j skipper
-update_a4:
+update_a4:			# Update type4 asteroids
 	la $a1, asteroid4_clr
 	la $a2, asteroid4
 skipper:
@@ -263,7 +266,7 @@ no_change:
 	
 	j GAMELOOP
 gameover:
-	jal draw_space		# Clear the screen
+	jal draw_space			# Clear the screen
 	
 	add $t4, $0, WHITE		# $t4 = white color
 	la $t0, gameover_text 		# Load address for gameover text coords
@@ -502,7 +505,7 @@ col:    beq $t4, $t0, ENDCOL		# Exit when $t4 = 32
 	sw $t3, 16($sp)
 	sw $ra, 20($sp)
 	
-	jal get_addr
+	jal get_addr		# Call get_addr function and store relevant registers
 	
 	lw $t0, 0($sp)
 	lw $t1, 4($sp)
@@ -823,7 +826,7 @@ loop:   beq $t7, $t1, END
 	sw $t3, 16($sp)
 	sw $ra, 20($sp)
 	
-	jal get_addr
+	jal get_addr		# Call get_addr and store relevant registers
 	
 	lw $t0, 0($sp)
 	lw $t1, 4($sp)
@@ -1014,4 +1017,3 @@ not_within: li $v1, 0 # The provided ship coordinate is not within frame
 	    
 skip2: jr $ra	
 ###########################
-
