@@ -373,23 +373,7 @@ loop18:  lw $t6, 0($t0) 			# $t6 = asteroidCord[i]
 	addi $t0, $t0, 4 	# gotextCord++
 	j loop18
 ENDLOOP18:
-	# Delete old health level by drawing black over it
-	add $t4, $0, BLACK		# $t4 = BLACK color
-	addi $t3,$0, 364		# $t3 = pixel to start drawing health_bar from
-	li $t2, BASE_ADDRESS 		# The base address of the bitmap
-	li $t1, 10			# $t1 = 10
-	li $t6, 0
-	
-loop20: bge $t6, $t1, ENDLOOP20         # $t6 = loop iteration
-	
-	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
-	addi $t3, $t3, 4 	# $t5 = BASE_ADDRESS + base pixel value	+ 4
-	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
-	
-	addi $t6, $t6, 1 	# loop iteration++
-	j loop20	
-ENDLOOP20:	
-
+		
 	# Draw the health bar at current health
 	add $t4, $0, RED		# $t4 = red color
 	addi $t3,$0, 364		# $t3 = pixel to start drawing health_bar from
@@ -407,7 +391,24 @@ loop19: bge $t6, $t1, ENDLOOP19         # $t6 = loop iteration
 	
 	addi $t6, $t6, 1 	# loop iteration++
 	j loop19
-ENDLOOP19: jr $ra
+ENDLOOP19: 
+
+	# Delete old health level by drawing black over it
+	add $t4, $0, BLACK		# $t4 = BLACK color
+	#addi $t3,$0, 364		# $t3 = pixel to start drawing health_bar from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, 10			# $t1 = 10
+	#li $t6, 0
+	
+loop20: bge $t6, $t1, ENDLOOP20         # $t6 = loop iteration
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	addi $t3, $t3, 4 	# $t5 = BASE_ADDRESS + base pixel value	+ 4
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t6, $t6, 1 	# loop iteration++
+	j loop20	
+ENDLOOP20: jr $ra
 
 ##############################
 
