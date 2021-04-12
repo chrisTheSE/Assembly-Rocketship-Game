@@ -232,10 +232,10 @@ end12:  li $s7, 0		# Reset to 0
 	sw $s4, 0($s3)
 	
 	 
-	# Increase game difficulty when time % 100 = 0
-	li $a2, 100			# $a0 = 100
+	# Increase game difficulty when time % 200 = 0
+	li $a2, 200			# $a0 = 200
 	div $s4, $a2			
-	mfhi $a2			# $a2 = time % 100
+	mfhi $a2			# $a2 = time % 200
 	beq $a2, 0, update_diff		# Update difficulty
 	j no_diff_change		# No difficulty change
 update_diff:
