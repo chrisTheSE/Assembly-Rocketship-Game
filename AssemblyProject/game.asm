@@ -53,6 +53,7 @@
 .eqv KEY_PRESSED 0xffff0000	# Address of where 1 or 0 is stored depending on if a key has been pressed
 
 # Colours
+.eqv SILVER 0xC0C0C0		# Silver color
 .eqv WHITE 0xFFFFFF		# White color
 .eqv RED   0xf44236		# Red color
 .eqv BLACK 0x00000000		# Black color
@@ -79,6 +80,7 @@ gameover_text:  .word   0, 256, 512, 768, 1024, 1280, 4, 8, 12, 772, 776, 780, 2
  2320, 2576, 2832, 2076, 2332, 2588, 2844, 3100, 2084, 2340, 2596, 2852, 3108, 2080, 3104, 2092, 2348,
  2604, 2860, 3116, 2096, 2100, 2608, 2612, 2360, 2616, 2868, 3128, 2112, 2368, 2624, 2880, 3136, 2116,
  2628, 3140, 568, 828, -1
+health_bar:	.word   0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 512, 516, 520, 524, 528, 532, 536, 540, 544, 548, 552, 556, 256, 300, -1	# Stores coords for health bar
 zero:		.word   0, 256, 512, 768, 1024, 8, 264, 520, 776, 1032, 4, 8, 1028, 1032, -1
 one:		.word   0, 4, 260, 516, 772, 1028, 1024, 1032, -1
 two:		.word	0, 4, 8, 1024, 1028, 1032, 8, 264, 520, 1032, 516, 512, 768, -1
@@ -214,7 +216,10 @@ end12:  li $s7, 0		# Reset to 0
 	#la $a0, ship_rgb 	# Draw ship using ship_rgb colors for the ships pixels
 	#move $a0, $s7 		# Draw ship using ship_rgb (or shipcol_rgb) colors for the ships pixels
 	jal draw_ship 		# Draw the ship on the screen (position may have updated)
-
+	
+	# Draw the players health bar
+	jal draw_healthbar
+	
 	# Wait at the end of the loop before next graphic refresh
 	li $v0, 32
 	li $a0, REFRESH_RATE # Wait REFRESH_RATE ms
@@ -327,6 +332,66 @@ no_input2:
 	syscall
 	
 ############################# Game Functions #############################################
+
+##### Draw health bar #####
+draw_healthbar:
+	la $t0, health_bar 		# Load address for health bar coords
+
+	add $t4, $0, SILVER		# $t4 = silver color
+	addi $t3,$0, 104		# $t3 = pixel to start drawing health_bar from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, -1 			# Loop exit point
+
+	# Draw the health bar border
+loop18:  lw $t6, 0($t0) 			# $t6 = asteroidCord[i]
+	beq $t6, $t1, ENDLOOP18
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	add $t5, $t5, $t6 	# $t5 = BASE_ADDRESS + base pixel value	+ gotextCord[i]
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t0, $t0, 4 	# gotextCord++
+	j loop18
+ENDLOOP18:
+	# Delete old health level by drawing black over it
+	add $t4, $0, BLACK		# $t4 = BLACK color
+	addi $t3,$0, 364		# $t3 = pixel to start drawing health_bar from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	li $t1, 10			# $t1 = 10
+	li $t6, 0
+	
+loop20: bge $t6, $t1, ENDLOOP20         # $t6 = loop iteration
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	addi $t3, $t3, 4 	# $t5 = BASE_ADDRESS + base pixel value	+ 4
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t6, $t6, 1 	# loop iteration++
+	j loop20	
+ENDLOOP20:	
+
+	# Draw the health bar at current health
+	add $t4, $0, RED		# $t4 = red color
+	addi $t3,$0, 364		# $t3 = pixel to start drawing health_bar from
+	li $t2, BASE_ADDRESS 		# The base address of the bitmap
+	la $t1, ship_health		# Load address of ship_health
+	lw $t1, 0($t1)			# $t1 = current ship health
+	li $t6, 0
+	
+	# Draw remaining health
+loop19: bge $t6, $t1, ENDLOOP19         # $t6 = loop iteration
+	
+	add $t5, $t2, $t3 	# $t5 = BASE_ADDRESS + base pixel value		
+	addi $t3, $t3, 4 	# $t5 = BASE_ADDRESS + base pixel value	+ 4
+	sw $t4, 0($t5) 		# Set pixel at $t5 to color $t4
+	
+	addi $t6, $t6, 1 	# loop iteration++
+	j loop19
+ENDLOOP19: jr $ra
+
+##############################
+
+
 
 # $a0 holds the digit
 # $a1 holds starting pixel
